@@ -28,7 +28,7 @@ impl std::fmt::Display for Grapheme {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GraphemeMatch {
     start: usize,
     end: usize,
@@ -75,6 +75,8 @@ impl PartialEq for EzStr {
         self.data == other.data
     }
 }
+
+impl Eq for EzStr {}
 
 impl EzStr {
     pub fn new<S: Into<String>>(data: S) -> Self {
