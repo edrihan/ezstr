@@ -2,6 +2,8 @@
 name = "ezstr"
 version = "0.1.0"
 edition = "2024"
+description = "A String wrapper supporting negative indexing with grapheme indexing for slices and Regex::find_iter and Regex::find"
+license = "MIT"
 
 [dependencies]
 unicode-segmentation = "1.12.0"
