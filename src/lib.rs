@@ -28,25 +28,21 @@ impl std::fmt::Display for Grapheme {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GraphemeMatch {
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct GraphemeMatch<'a> {
     start: usize,
     end: usize,
     text: EzStr,
+    source: &'a str,
 }
 
-impl GraphemeMatch {
-    pub fn new(start: usize, end: usize, text: EzStr) -> Self {
-
-        GraphemeMatch { start, end, text }
-    }
-
-    pub fn start(&self) -> usize {
-        self.start
-    }
-
-    pub fn end(&self) -> usize {
-        self.end
+impl <'a>GraphemeMatch<'a> {
+    pub fn new<T, S>(start: usize, end: usize, text: T, source: S) -> Self
+    where
+        T: Into<EzStr>,
+        S: Into<&'a str>,
+    {
+        GraphemeMatch { start, end, text:text.into(), source: source.into() }
     }
 
     pub fn as_str(&self) -> &str {
@@ -58,7 +54,7 @@ impl GraphemeMatch {
     }
 }
 
-impl Display for GraphemeMatch {
+impl Display for GraphemeMatch<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.as_str())
     }
@@ -158,7 +154,7 @@ impl EzStr {
     pub fn find(&self, regex: &Regex) -> Option<GraphemeMatch> {
         regex.find(&self.data).map(|m| {
             let (g_start, g_end) = self.byte_range_to_grapheme_indices(m.start(), m.end());
-            GraphemeMatch::new(g_start, g_end, self.slice(g_start as i32, g_end as i32))
+            GraphemeMatch::new(g_start, g_end, self.slice(g_start as i32, g_end as i32),self.data.as_str())
         })
     }
 
@@ -169,7 +165,7 @@ impl EzStr {
     ) -> impl Iterator<Item = GraphemeMatch> + 'a {
         regex.find_iter(&self.data).map(|m| {
             let (g_start, g_end) = self.byte_range_to_grapheme_indices(m.start(), m.end());
-            GraphemeMatch::new(g_start, g_end, self.slice(g_start as i32, g_end as i32))
+            GraphemeMatch::new(g_start, g_end, self.slice(g_start as i32, g_end as i32),self.data.as_str())
         })
     }
 }
@@ -191,6 +187,8 @@ impl Into<String> for EzStr {
         self.data
     }
 }
+
+
 
 impl Index<usize> for EzStr {
     type Output = Grapheme;
