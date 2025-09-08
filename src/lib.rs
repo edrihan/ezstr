@@ -208,6 +208,12 @@ impl IntoIterator for EzStr {
     }
 }
 
+impl AsRef<str> for EzStr {
+    fn as_ref(&self) -> &str {
+        self.data.as_str()
+    }
+}
+
 impl<'a> IntoIterator for &'a EzStr {
     type Item = &'a Grapheme;
     type IntoIter = std::slice::Iter<'a, Grapheme>;
