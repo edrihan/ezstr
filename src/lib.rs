@@ -89,7 +89,7 @@ impl EzStr {
         }
     }
 
-    fn graphemes(&self) -> &Vec<Grapheme> {
+    pub fn graphemes(&self) -> &Vec<Grapheme> {
         self.graphemes_data.get_or_init(|| {
             UnicodeSegmentation::graphemes(self.data.as_str(), true)
                 .map(Grapheme::new)
@@ -97,7 +97,7 @@ impl EzStr {
         })
     }
 
-    fn graphemes_byte_index(&self) -> &Vec<(usize, usize)> {
+    pub fn graphemes_byte_index(&self) -> &Vec<(usize, usize)> {
         self.grapheme_byte_index_data.get_or_init(|| {
             self.data
                 .grapheme_indices(true)
