@@ -37,6 +37,7 @@ pub struct GraphemeMatch {
 
 impl GraphemeMatch {
     pub fn new(start: usize, end: usize, text: EzStr) -> Self {
+
         GraphemeMatch { start, end, text }
     }
 
@@ -66,7 +67,7 @@ impl Display for GraphemeMatch {
 #[derive(Clone)]
 pub struct EzStr {
     pub data: String,
-    graphemes: OnceCell<Vec<Grapheme>>,
+    pub graphemes: OnceCell<Vec<Grapheme>>,
     grapheme_byte_index: OnceCell<Vec<(usize, usize)>>, // (byte_offset, grapheme_index)
 }
 
