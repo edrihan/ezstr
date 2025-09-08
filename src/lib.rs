@@ -30,10 +30,10 @@ impl std::fmt::Display for Grapheme {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GraphemeMatch<'a> {
-    start: usize,
-    end: usize,
-    text: EzStr,
-    source: &'a str,
+    pub start: usize,
+    pub end: usize,
+    pub text: EzStr,
+    pub source: &'a str,
 }
 
 impl <'a>GraphemeMatch<'a> {
