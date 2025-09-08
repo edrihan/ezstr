@@ -263,6 +263,12 @@ impl Add<&String> for &EzStr {
     }
 }
 
+impl Default for EzStr {
+    fn default() -> Self {
+        EzStr::new("")
+    }
+}
+
 impl fmt::Display for EzStr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.data)
@@ -274,3 +280,5 @@ impl fmt::Debug for EzStr {
         f.write_fmt(format_args!("{:?}", self.data))
     }
 }
+
+
