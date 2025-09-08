@@ -67,8 +67,8 @@ impl Display for GraphemeMatch {
 #[derive(Clone)]
 pub struct EzStr {
     pub data: String,
-    pub graphemes: OnceCell<Vec<Grapheme>>,
-    grapheme_byte_index: OnceCell<Vec<(usize, usize)>>, // (byte_offset, grapheme_index)
+    pub graphemes_data: OnceCell<Vec<Grapheme>>,
+    grapheme_byte_index_data: OnceCell<Vec<(usize, usize)>>, // (byte_offset, grapheme_index)
 }
 
 impl PartialEq for EzStr {
@@ -84,21 +84,21 @@ impl EzStr {
         let data = data.into();
         EzStr {
             data,
-            graphemes: OnceCell::new(),
-            grapheme_byte_index: OnceCell::new(),
+            graphemes_data: OnceCell::new(),
+            grapheme_byte_index_data: OnceCell::new(),
         }
     }
 
-    fn build_graphemes(&self) -> &Vec<Grapheme> {
-        self.graphemes.get_or_init(|| {
+    fn graphemes(&self) -> &Vec<Grapheme> {
+        self.graphemes_data.get_or_init(|| {
             UnicodeSegmentation::graphemes(self.data.as_str(), true)
                 .map(Grapheme::new)
                 .collect()
         })
     }
 
-    fn build_grapheme_byte_index(&self) -> &Vec<(usize, usize)> {
-        self.grapheme_byte_index.get_or_init(|| {
+    fn graphemes_byte_index(&self) -> &Vec<(usize, usize)> {
+        self.grapheme_byte_index_data.get_or_init(|| {
             self.data
                 .grapheme_indices(true)
                 .enumerate()
@@ -108,7 +108,7 @@ impl EzStr {
     }
 
     fn byte_range_to_grapheme_indices(&self, start: usize, end: usize) -> (usize, usize) {
-        let idx = self.build_grapheme_byte_index();
+        let idx = self.graphemes_byte_index();
 
         let g_start = match idx.binary_search_by_key(&start, |&(b, _)| b) {
             Ok(i) => idx[i].1,
@@ -124,7 +124,7 @@ impl EzStr {
     }
 
     pub fn slice(&self, start: i32, end: i32) -> EzStr {
-        let graphemes = self.build_graphemes();
+        let graphemes = self.graphemes();
         let mut ret = String::new();
         let mut start = start;
         let mut end = end;
@@ -143,7 +143,7 @@ impl EzStr {
     }
 
     pub fn len(&self) -> usize {
-        self.build_graphemes().len()
+        self.graphemes().len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -195,7 +195,7 @@ impl Into<String> for EzStr {
 impl Index<usize> for EzStr {
     type Output = Grapheme;
     fn index(&self, index: usize) -> &Self::Output {
-        &self.build_graphemes()[index]
+        &self.graphemes()[index]
     }
 }
 
@@ -204,7 +204,7 @@ impl IntoIterator for EzStr {
     type IntoIter = std::vec::IntoIter<Grapheme>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.build_graphemes().clone().into_iter()
+        self.graphemes().clone().into_iter()
     }
 }
 
@@ -213,7 +213,7 @@ impl<'a> IntoIterator for &'a EzStr {
     type IntoIter = std::slice::Iter<'a, Grapheme>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.build_graphemes().iter()
+        self.graphemes().iter()
     }
 }
 
@@ -221,7 +221,7 @@ impl Index<std::ops::Range<usize>> for EzStr {
     type Output = [Grapheme];
 
     fn index(&self, index: std::ops::Range<usize>) -> &Self::Output {
-        &self.build_graphemes()[index]
+        &self.graphemes()[index]
     }
 }
 
