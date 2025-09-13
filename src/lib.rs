@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::fmt::Display;
 use std::ops::Index;
 use std::ops::Add;
@@ -28,7 +28,7 @@ impl std::fmt::Display for Grapheme {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Clone, PartialEq, Eq, Default)]
 pub struct GraphemeMatch<'a> {
     pub start: usize,
     pub end: usize,
@@ -42,8 +42,15 @@ impl <'a>GraphemeMatch<'a> {
         T: Into<EzStr>,
         S: Into<&'a str>,
     {
-        GraphemeMatch { start, end, text:text.into(), source: source.into() }
+        let it = GraphemeMatch { start, end, text:text.into(), source: source.into()};
+        it.ensure_is_valid();
+        it
+
+
     }
+
+
+
 
     pub fn as_str(&self) -> &str {
         &self.text.data
@@ -52,11 +59,25 @@ impl <'a>GraphemeMatch<'a> {
     pub fn to_ezstr(&self) -> EzStr {
         self.text.clone()
     }
+
+    pub fn ensure_is_valid(&self) -> bool {
+        true
+    }
 }
 
-impl Display for GraphemeMatch<'_> {
+impl<'a> Display for GraphemeMatch<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.as_str())
+    }
+}
+
+impl<'a> fmt::Debug for GraphemeMatch<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "GraphemeMatch {{ start: {:?}, end: {}, text: {:?} }}",
+            self.start, self.end, self.text
+        )
     }
 }
 
@@ -74,6 +95,8 @@ impl PartialEq for EzStr {
 }
 
 impl Eq for EzStr {}
+
+
 
 impl EzStr {
     pub fn new<S: Into<String>>(data: S) -> Self {
@@ -158,16 +181,35 @@ impl EzStr {
         })
     }
 
+
+
     /// Returns an iterator of matches of the regex, in grapheme cluster indices.
     pub fn find_iter<'a>(
         &'a self,
-        regex: &'a Regex,
-    ) -> impl Iterator<Item = GraphemeMatch> + 'a {
-        regex.find_iter(&self.data).map(|m| {
+        regex: &Regex,
+    ) -> impl Iterator<Item = GraphemeMatch<'a>> {
+        let data = &self.data;
+        regex.find_iter(data).map(move |m| {
             let (g_start, g_end) = self.byte_range_to_grapheme_indices(m.start(), m.end());
-            GraphemeMatch::new(g_start, g_end, self.slice(g_start as i32, g_end as i32),self.data.as_str())
+            GraphemeMatch::new(
+                g_start,
+                g_end,
+                self.slice(g_start as i32, g_end as i32),
+                data.as_str(),
+            )
         })
     }
+
+    // /// Returns an iterator of matches of the regex, in grapheme cluster indices.
+    //     fn find_iterOLD<'a>(
+    //         &'a self,
+    //         regex: &'a Regex,
+    //     ) -> impl Iterator<Item = GraphemeMatch> + 'a {
+    //         regex.find_iter(&self.data).map(|m| {
+    //             let (g_start, g_end) = self.byte_range_to_grapheme_indices(m.start(), m.end());
+    //             GraphemeMatch::new(g_start, g_end, self.slice(g_start as i32, g_end as i32),self.data.as_str())
+    //         })
+    //     }
 }
 
 impl From<String> for EzStr {

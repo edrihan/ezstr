@@ -31,4 +31,18 @@ mod tests {
         let captures: Vec<_> = sample.find_iter(&reg).collect();
         assert_eq!(captures.len(), 2); // Expecting two matches
     }
+
+    #[test]
+    fn test_reference_source(){
+        let sample = EzStr::new("This is a long containing string\nwith multiple lines");
+        let reg = Regex::new("This is a long containing string").unwrap();
+        assert!(sample.contains("This is a long containing string"));
+        assert!(!sample.contains("This is a long containing string!!"));
+        let matches: Vec<_> = sample.find_iter(&reg).collect();
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0].text, "This is a long containing string".into());
+        assert_eq!(matches[0].source, "This is a long containing string\nwith multiple lines")
+
+
+    }
 }
