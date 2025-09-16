@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 use ezstr::*;
 use regex::Regex;
 
@@ -39,9 +41,14 @@ mod tests {
         assert!(sample.contains("This is a long containing string"));
         assert!(!sample.contains("This is a long containing string!!"));
         let matches: Vec<_> = sample.find_iter(&reg).collect();
-        assert_eq!(matches.len(), 1);
+        assert_eq!(matches.len(), 1usize);
         assert_eq!(matches[0].text, "This is a long containing string".into());
-        assert_eq!(matches[0].source, "This is a long containing string\nwith multiple lines")
+        assert_eq!(matches[0].source,EzStr::new("This is a long containing string\nwith multiple lines"));
+
+        let sample = EzStr::new("|A|B|C|D|\n|E|F|G|");
+        let re = Regex::new(r"\|").unwrap();
+        let matches: Vec<_> = sample.find_iter(&re).collect();
+        assert_eq!(matches.len(), 9, "{:?}", matches);
 
 
     }

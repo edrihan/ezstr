@@ -1,17 +1,19 @@
+#![allow(warnings)]
+
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::fmt::Display;
 use std::ops::Index;
 use std::ops::Add;
 use std::slice::SliceIndex;
-
+use std::hash::Hash;
 use regex::Regex;
 use unicode_segmentation::UnicodeSegmentation;
 use once_cell::sync::OnceCell;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Grapheme {
-    value: String,
+    pub value: String,
 }
 
 impl Grapheme {
@@ -29,21 +31,22 @@ impl std::fmt::Display for Grapheme {
 }
 
 #[derive(Clone, PartialEq, Eq, Default)]
-pub struct GraphemeMatch<'a> {
+pub struct GraphemeMatch {
     pub start: usize,
     pub end: usize,
     pub text: EzStr,
-    pub source: &'a str,
+    pub source: EzStr
 }
 
-impl <'a>GraphemeMatch<'a> {
+impl GraphemeMatch {
     pub fn new<T, S>(start: usize, end: usize, text: T, source: S) -> Self
     where
         T: Into<EzStr>,
-        S: Into<&'a str>,
+        S: Into<EzStr>,
     {
-        let it = GraphemeMatch { start, end, text:text.into(), source: source.into()};
-        it.ensure_is_valid();
+        let source = source.into();
+        let it = GraphemeMatch { start, end, text:text.into(), source: source.clone()};
+        it.ensure_is_valid(source);
         it
 
 
@@ -60,18 +63,65 @@ impl <'a>GraphemeMatch<'a> {
         self.text.clone()
     }
 
-    pub fn ensure_is_valid(&self) -> bool {
-        true
+    pub fn is_valid(&self, source:&EzStr) -> bool {
+        //let a = self.source.chars().collect::<Vec<_>>()[self.start..self.end].to_vec();
+        // let a = &self.source.graphemes(true).collect::<Vec<_>>()[self.start..self.end].join("");
+
+        let a = source.slice(self.start as i32,self.end as i32);
+        let b = EzStr::new(&self.text.data);
+        let ret = a == b;
+        // if !ret {
+        //     panic!("a:{a:?} b:{b:?}\n{self:?}")
+        // }
+        ret
     }
+
+    pub fn ensure_is_valid<S: Into<EzStr> + Clone>(&self, source:S) -> () {
+        let source = source.into();
+        if !self.is_valid(&source) {
+
+            // let span = &self.source[self.start..self.end];
+            // let re = Regex::new(self.text.as_str()).unwrap();
+            // let text_matches: Vec<_> = regex_find_graphemes_iter(&re, self.source).collect();
+            let a = source.slice(self.start as i32,self.end as i32);
+            let b = EzStr::new(&self.text.data);
+            let re = Regex::new(b.data.as_str().replace("|",r"\|").as_str()).unwrap();
+            let source:EzStr = source.into();
+            let text_matches: Vec<_> = source.find_iter(&re).collect();
+
+            let mut panic_str = String::new();
+            if text_matches.len() > 0 {
+                panic_str += format!("\n, so not found at [{},{}] but was found at        ",self.start,self.end).as_str();
+                for re_match in text_matches{
+                    panic_str += format!("[{},{}]: {:?}", re_match.start, re_match.end, source.slice(re_match.start.try_into().unwrap(),
+                                                                                                     re_match.end.try_into().unwrap())).as_str();
+                }
+                panic_str += "\n\n";
+            }
+            //panic!("source:{:?}\nre: {:?}\ntext_matches:{:?}",source,re,text_matches);
+            panic_str += format!("substring: {b:?} not at source.slice({},{}): {a:?} \nInvalid {self:?}\n{:?}",
+                                        self.start, self.end,
+                                        &self.source).as_str();
+
+
+
+            panic!("{}",panic_str);
+        } else {
+            println!("Successful match found at: {:?}", self);
+
+        }
+    }
+
+
 }
 
-impl<'a> Display for GraphemeMatch<'a> {
+impl<'a> Display for GraphemeMatch{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-impl<'a> fmt::Debug for GraphemeMatch<'a> {
+impl<'a> fmt::Debug for GraphemeMatch{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -81,11 +131,17 @@ impl<'a> fmt::Debug for GraphemeMatch<'a> {
     }
 }
 
-#[derive(Clone)]
+
 pub struct EzStr {
     pub data: String,
     pub graphemes_data: OnceCell<Vec<Grapheme>>,
     grapheme_byte_index_data: OnceCell<Vec<(usize, usize)>>, // (byte_offset, grapheme_index)
+}
+
+impl Hash for EzStr {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.data.hash(state);
+    }
 }
 
 impl PartialEq for EzStr {
@@ -174,8 +230,22 @@ impl EzStr {
     }
 
     /// Returns the first match of the regex, in grapheme cluster indices.
-    pub fn find(&self, regex: &Regex) -> Option<GraphemeMatch> {
-        regex.find(&self.data).map(|m| {
+    pub fn find<'a>(&'a self, regex: &Regex) -> Option<GraphemeMatch> {
+        let data = &self.data;
+        regex.find(data).map(|m| {
+            let (g_start, g_end) = self.byte_range_to_grapheme_indices(m.start(), m.end());
+            GraphemeMatch::new(
+                g_start,
+                g_end,
+                self.slice(g_start as i32, g_end as i32),
+                data.as_str(),
+            )
+        })
+    }
+
+
+    pub fn findOLD(&self, regex: &Regex) -> Option<GraphemeMatch> {
+        regex.find(&self.data).map( |m| {
             let (g_start, g_end) = self.byte_range_to_grapheme_indices(m.start(), m.end());
             GraphemeMatch::new(g_start, g_end, self.slice(g_start as i32, g_end as i32),self.data.as_str())
         })
@@ -187,7 +257,7 @@ impl EzStr {
     pub fn find_iter<'a>(
         &'a self,
         regex: &Regex,
-    ) -> impl Iterator<Item = GraphemeMatch<'a>> {
+    ) -> impl Iterator<Item = GraphemeMatch> {
         let data = &self.data;
         regex.find_iter(data).map(move |m| {
             let (g_start, g_end) = self.byte_range_to_grapheme_indices(m.start(), m.end());
@@ -212,6 +282,16 @@ impl EzStr {
     //     }
 }
 
+
+impl Clone for EzStr {
+    fn clone(&self) -> EzStr {
+        Self {data:self.data.clone(),
+            graphemes_data: self.graphemes_data.clone(),
+            grapheme_byte_index_data: self.grapheme_byte_index_data.clone(), }
+    }
+}
+
+
 impl From<String> for EzStr {
     fn from(item: String) -> Self {
         EzStr::new(item)
@@ -224,11 +304,18 @@ impl From<&str> for EzStr {
     }
 }
 
+impl From<char> for EzStr {
+    fn from(item: char) -> Self {
+        EzStr::new(item.to_string())
+    }
+}
+
 impl Into<String> for EzStr {
     fn into(self) -> String {
         self.data
     }
 }
+
 
 
 
