@@ -30,7 +30,7 @@ impl std::fmt::Display for Grapheme {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Default)]
+#[derive(Clone, PartialEq, Eq, Default, Hash)]
 pub struct GraphemeMatch {
     pub start: usize,
     pub end: usize,
@@ -298,6 +298,11 @@ impl From<String> for EzStr {
     }
 }
 
+impl From<&String> for EzStr {
+    fn from(item: &String) -> Self {
+        EzStr::new(item)
+    }
+}
 impl From<&str> for EzStr {
     fn from(item: &str) -> Self {
         EzStr::new(item)
@@ -310,13 +315,46 @@ impl From<char> for EzStr {
     }
 }
 
+impl From<u8> for EzStr {
+    fn from(item: u8) -> Self {
+        EzStr::new(item.to_string())
+    }
+}
+
+impl From<GraphemeMatch> for EzStr {
+    fn from(grapheme_match: GraphemeMatch) -> Self {
+        EzStr::new(grapheme_match.text)
+    }
+}
+
+impl From<&GraphemeMatch> for EzStr {
+    fn from(grapheme_match: &GraphemeMatch) -> Self {
+        EzStr::new(&grapheme_match.text)
+    }
+}
 impl Into<String> for EzStr {
     fn into(self) -> String {
         self.data
     }
 }
 
+impl Into<String> for &EzStr {
+    fn into(self) -> String {
+        self.data.clone()
+    }
+}
 
+impl Into<i32> for &EzStr {
+    fn into(self) -> i32 {
+        self.data.parse::<i32>().unwrap()
+    }
+}
+
+impl Into<i32> for EzStr {
+    fn into(self) -> i32 {
+        self.data.parse::<i32>().unwrap()
+    }
+}
 
 
 impl Index<usize> for EzStr {
