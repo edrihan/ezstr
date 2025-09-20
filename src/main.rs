@@ -43,7 +43,7 @@ mod tests {
         let matches: Vec<_> = sample.find_iter(&reg).collect();
         assert_eq!(matches.len(), 1usize);
         assert_eq!(matches[0].text, "This is a long containing string".into());
-        assert_eq!(matches[0].source,EzStr::new("This is a long containing string\nwith multiple lines"));
+        assert_eq!(sample,EzStr::new("This is a long containing string\nwith multiple lines"));
 
         let sample = EzStr::new("|A|B|C|D|\n|E|F|G|");
         let re = Regex::new(r"\|").unwrap();

@@ -35,18 +35,14 @@ pub struct GraphemeMatch {
     pub start: usize,
     pub end: usize,
     pub text: EzStr,
-    pub source: EzStr
 }
 
 impl GraphemeMatch {
-    pub fn new<T, S>(start: usize, end: usize, text: T, source: S) -> Self
+    pub fn new<T>(start: usize, end: usize, text: T) -> Self
     where
         T: Into<EzStr>,
-        S: Into<EzStr>,
     {
-        let source = source.into();
-        let it = GraphemeMatch { start, end, text:text.into(), source: source.clone()};
-        it.ensure_is_valid(source);
+        let it = GraphemeMatch { start, end, text:text.into()};
         it
 
 
@@ -101,7 +97,7 @@ impl GraphemeMatch {
             //panic!("source:{:?}\nre: {:?}\ntext_matches:{:?}",source,re,text_matches);
             panic_str += format!("substring: {b:?} not at source.slice({},{}): {a:?} \nInvalid {self:?}\n{:?}",
                                         self.start, self.end,
-                                        &self.source).as_str();
+                                        &source).as_str();
 
 
 
@@ -238,7 +234,6 @@ impl EzStr {
                 g_start,
                 g_end,
                 self.slice(g_start as i32, g_end as i32),
-                data.as_str(),
             )
         })
     }
@@ -247,17 +242,17 @@ impl EzStr {
     pub fn findOLD(&self, regex: &Regex) -> Option<GraphemeMatch> {
         regex.find(&self.data).map( |m| {
             let (g_start, g_end) = self.byte_range_to_grapheme_indices(m.start(), m.end());
-            GraphemeMatch::new(g_start, g_end, self.slice(g_start as i32, g_end as i32),self.data.as_str())
+            GraphemeMatch::new(g_start, g_end, self.slice(g_start as i32, g_end as i32))
         })
     }
 
 
 
     /// Returns an iterator of matches of the regex, in grapheme cluster indices.
-    pub fn find_iter<'a>(
-        &'a self,
+    pub fn find_iter(
+        &self,
         regex: &Regex,
-    ) -> impl Iterator<Item = GraphemeMatch> {
+    ) -> impl Iterator<Item=GraphemeMatch> {
         let data = &self.data;
         regex.find_iter(data).map(move |m| {
             let (g_start, g_end) = self.byte_range_to_grapheme_indices(m.start(), m.end());
@@ -265,7 +260,6 @@ impl EzStr {
                 g_start,
                 g_end,
                 self.slice(g_start as i32, g_end as i32),
-                data.as_str(),
             )
         })
     }
